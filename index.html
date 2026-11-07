@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sp1ng Hub | IPA Inspector & Resource Center</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sp1ng: {
+                            green: '#00ff66',
+                            cyan: '#06b6d4',
+                            purple: '#a855f7',
+                            dark: '#07090e',
+                            card: '#0f1420',
+                            border: '#1a2234'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-green': '0 0 25px rgba(0, 255, 102, 0.25)',
+                        'neon-cyan': '0 0 25px rgba(6, 182, 212, 0.25)',
+                        'glow': '0 0 40px rgba(0, 255, 102, 0.08)'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- JSZip for browser-side IPA extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Google Fonts & Lucide Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #07090e;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 255, 102, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .glass-panel {
+            background: rgba(15, 20, 32, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .cyber-grid {
+            background-size: 32px 32px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .toast-animate {
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .drag-over {
+            border-color: #00ff66 !important;
+            background: rgba(0, 255, 102, 0.08) !important;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.2);
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col justify-between selection:bg-sp1ng-green selection:text-black cyber-grid">
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sp1ng-green to-sp1ng-cyan p-0.5 shadow-neon-green">
+                    <div class="w-full h-full bg-sp1ng-dark rounded-[10px] flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-sp1ng-green"></i>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-2xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-sp1ng-green via-sp1ng-cyan to-sp1ng-purple">
+                        SP1NG<span class="text-white font-light">HUB</span>
+                    </span>
+                    <span class="ml-2 px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-sp1ng-green/10 text-sp1ng-green border border-sp1ng-green/30 rounded-full">PRO SUITE</span>
+                </div>
+            </div>
+
+            <nav class="flex items-center gap-6">
+                <a href="#inspector" class="text-sm font-medium hover:text-sp1ng-green transition-colors flex items-center gap-1.5">
+                    <i data-lucide="box" class="w-4 h-4"></i> Inspector
+                </a>
+                <a href="#downloads" class="text-sm font-medium hover:text-sp1ng-cyan transition-colors flex items-center gap-1.5">
+                    <i data-lucide="download" class="w-4 h-4"></i> Resources
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16 flex-grow w-full">
+
+        <!-- Hero Title -->
+        <section class="text-center space-y-4 max-w-3xl mx-auto pt-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sp1ng-green/10 border border-sp1ng-green/30 text-sp1ng-green text-xs font-semibold uppercase tracking-wider">
+                <i data-lucide="zap" class="w-4 h-4"></i> 100% In-Browser Analysis • Zero Uploads
+            </div>
+            <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-white">
+                iOS Package Inspector & <br/>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-sp1ng-green via-sp1ng-cyan to-sp1ng-purple">Official Resource Hub</span>
+            </h1>
+            <p class="text-slate-400 text-base sm:text-lg leading-relaxed">
+                Inspect `.ipa` files locally inside your browser, check SideStore compatibility, and download official binaries for iLoader, SideStore, and iTunes.
+            </p>
+        </section>
+
+        <!-- SECTION 1: IPA Inspector Tool -->
+        <section id="inspector" class="scroll-mt-28">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 shadow-glow relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-96 h-96 bg-sp1ng-green/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="space-y-8 relative z-10">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-6">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-3 bg-sp1ng-green/10 rounded-2xl border border-sp1ng-green/30 text-sp1ng-green">
+                                <i data-lucide="file-search" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">IPA Inspector & Compatibility Checker</h2>
+                                <p class="text-xs text-slate-400">Drag & drop any iOS application package (.ipa) to extract Info.plist metadata</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-slate-400 hidden sm:inline-block">Browser JSZip Engine</span>
+                    </div>
+
+                    <!-- Drop Zone -->
+                    <div id="dropZone" class="border-2 border-dashed border-white/20 hover:border-sp1ng-green/60 rounded-2xl p-8 sm:p-12 text-center transition-all duration-300 cursor-pointer bg-sp1ng-dark/40 relative group">
+                        <input type="file" id="ipaInput" accept=".ipa" class="hidden">
+                        
+                        <div class="space-y-4 pointer-events-none">
+                            <div class="w-16 h-16 mx-auto rounded-2xl bg-sp1ng-green/10 border border-sp1ng-green/30 flex items-center justify-center text-sp1ng-green group-hover:scale-110 transition-transform">
+                                <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                            </div>
+                            <div>
+                                <p class="text-lg font-bold text-white">Drop your <code class="text-sp1ng-green font-mono">.ipa</code> file here</p>
+                                <p class="text-sm text-slate-400 mt-1">or click to browse your computer (e.g. Delta.ipa, SideStore.ipa)</p>
+                            </div>
+                            <div class="inline-flex items-center gap-2 text-xs text-slate-500 font-mono bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                                <i data-lucide="lock" class="w-3.5 h-3.5 text-sp1ng-green"></i> Processed 100% client-side (no server transfer)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div id="inspectLoader" class="hidden space-y-3 p-6 glass-panel rounded-2xl text-center">
+                        <div class="inline-block animate-spin text-sp1ng-green">
+                            <i data-lucide="loader-2" class="w-8 h-8"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Extracting IPA archive and parsing Info.plist...</p>
+                        <div class="w-full bg-white/10 rounded-full h-1.5 overflow-hidden max-w-xs mx-auto">
+                            <div class="bg-sp1ng-green h-full animate-pulse w-3/4"></div>
+                        </div>
+                    </div>
+
+                    <!-- Results Dashboard -->
+                    <div id="inspectorResults" class="hidden space-y-6">
+                        <div id="compatBanner" class="flex items-center justify-between p-4 rounded-2xl border transition-all">
+                            <div class="flex items-center space-x-3">
+                                <i id="compatIcon" data-lucide="check-circle-2" class="w-6 h-6 shrink-0"></i>
+                                <div>
+                                    <h4 id="compatTitle" class="text-sm font-bold text-white">Checking SideStore Compatibility...</h4>
+                                    <p id="compatDesc" class="text-xs text-slate-300">Validating minimum iOS requirements for sideloading.</p>
+                                </div>
+                            </div>
+                            <span id="compatBadge" class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase">STATUS</span>
+                        </div>
+
+                        <!-- Data Cards Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="glass-panel p-4 rounded-xl space-y-1">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Application Name</span>
+                                <p id="resAppName" class="text-base font-bold text-white truncate">-</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl space-y-1">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Bundle Identifier</span>
+                                <p id="resBundleId" class="text-sm font-mono text-sp1ng-green truncate">-</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl space-y-1">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Minimum iOS Required</span>
+                                <p id="resMinOS" class="text-base font-bold text-sp1ng-cyan truncate">-</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl space-y-1">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">File Size</span>
+                                <p id="resFileSize" class="text-base font-bold text-sp1ng-purple truncate">-</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl space-y-1">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Version String</span>
+                                <p id="resVersion" class="text-sm font-mono text-slate-200 truncate">-</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl space-y-1">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Build Number</span>
+                                <p id="resBuild" class="text-sm font-mono text-slate-200 truncate">-</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl space-y-1 col-span-1 sm:col-span-2 lg:col-span-3">
+                                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Executable Binary Name</span>
+                                <p id="resExecutable" class="text-sm font-mono text-slate-200 truncate">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Official Download Links & Resources -->
+        <section id="downloads" class="scroll-mt-28 space-y-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="download" class="w-6 h-6 text-sp1ng-cyan"></i> Official Downloads & Resources
+                    </h2>
+                    <p class="text-slate-400 text-xs sm:text-sm">Verified direct mirrors for iLoader, SideStore, and iTunes dependencies</p>
+                </div>
+                <span class="px-3 py-1 bg-sp1ng-cyan/10 border border-sp1ng-cyan/30 rounded-full text-xs text-sp1ng-cyan font-mono self-start sm:self-auto">
+                    Official GitHub & Apple Links
+                </span>
+            </div>
+
+            <!-- Category 1: iLoader Installers -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-sp1ng-green flex items-center gap-2">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> iLoader Multi-Platform Installers
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                    <!-- iLoader Windows x64 -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-green/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-green/10 rounded-xl border border-sp1ng-green/30 text-sp1ng-green">
+                                    <i data-lucide="monitor" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-green transition-colors">Windows x64</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">MSI Installer</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Official Windows 64-bit installer for iLoader.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://github.com/nab138/iloader/releases/latest/download/iloader-windows-x64.msi" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-green hover:text-black border border-white/10 hover:border-sp1ng-green font-semibold text-xs transition-all">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download .MSI
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- iLoader Linux .deb -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-green/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-green/10 rounded-xl border border-sp1ng-green/30 text-sp1ng-green">
+                                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-green transition-colors">Linux Debian / Ubuntu</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">DEB Package</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Debian / Ubuntu 64-bit package for iLoader.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://github.com/nab138/iloader/releases/latest/download/iloader-linux-amd64.deb" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-green hover:text-black border border-white/10 hover:border-sp1ng-green font-semibold text-xs transition-all">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download .DEB
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- iLoader Linux AppImage -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-green/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-green/10 rounded-xl border border-sp1ng-green/30 text-sp1ng-green">
+                                    <i data-lucide="box" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-green transition-colors">Linux Universal</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">AppImage Binary</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Standalone portable AppImage binary for Linux distros.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://github.com/nab138/iloader/releases/latest/download/iloader-linux-amd64.AppImage" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-green hover:text-black border border-white/10 hover:border-sp1ng-green font-semibold text-xs transition-all">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download AppImage
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- iLoader macOS Universal -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-green/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-green/10 rounded-xl border border-sp1ng-green/30 text-sp1ng-green">
+                                    <i data-lucide="laptop" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-green transition-colors">macOS Universal</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">DMG Disk Image</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Universal DMG installer for Intel & Apple Silicon Macs.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://github.com/nab138/iloader/releases/latest/download/iloader-darwin-universal.dmg" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-green hover:text-black border border-white/10 hover:border-sp1ng-green font-semibold text-xs transition-all">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download .DMG
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Category 2: SideStore & iTunes Dependencies -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-sp1ng-cyan flex items-center gap-2">
+                    <i data-lucide="layers" class="w-4 h-4"></i> SideStore & Apple iTunes Drivers
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                    <!-- SideStore IPA -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-cyan/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-cyan/10 rounded-xl border border-sp1ng-cyan/30 text-sp1ng-cyan">
+                                    <i data-lucide="smartphone" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-cyan transition-colors">SideStore IPA</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">v0.7.0-alpha Release</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Official SideStore application package for iOS/iPadOS.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://github.com/SideStore/SideStore/releases/download/0.7.0-alpha/SideStore.ipa" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-cyan hover:text-black border border-white/10 hover:border-sp1ng-cyan font-semibold text-xs transition-all">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download .IPA
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- iTunes Win64 -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-cyan/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-cyan/10 rounded-xl border border-sp1ng-cyan/30 text-sp1ng-cyan">
+                                    <i data-lucide="monitor" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-cyan transition-colors">iTunes Windows x64</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">Apple Direct Link</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Standalone 64-bit installer with MobileDevice drivers.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://www.apple.com/itunes/download/win64" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-cyan hover:text-black border border-white/10 hover:border-sp1ng-cyan font-semibold text-xs transition-all">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Download Win64
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- iTunes Win32 -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-cyan/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-cyan/10 rounded-xl border border-sp1ng-cyan/30 text-sp1ng-cyan">
+                                    <i data-lucide="monitor" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-cyan transition-colors">iTunes Windows x32</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">Apple Direct Link</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Legacy 32-bit iTunes package for older Windows machines.</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://www.apple.com/itunes/download/win32" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-cyan hover:text-black border border-white/10 hover:border-sp1ng-cyan font-semibold text-xs transition-all">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Download Win32
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- iTunes macOS DMG -->
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between hover:border-sp1ng-cyan/50 transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="p-2.5 bg-sp1ng-cyan/10 rounded-xl border border-sp1ng-cyan/30 text-sp1ng-cyan">
+                                    <i data-lucide="laptop" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white group-hover:text-sp1ng-cyan transition-colors">iTunes macOS x64</h4>
+                                    <span class="text-[11px] text-slate-400 font-mono">iTunes 12.8.3 DMG</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400">Official DMG package for Intel Macs (e.g., MacBook Air 2015).</p>
+                        </div>
+                        <div class="pt-4">
+                            <a href="https://secure-appldnld.apple.com/itunes12/041-56365-20210413-79A5AC6D-6B0A-46EC-B399-5A381183E3BE/iTunes12.8.3.dmg" 
+                               target="_blank" rel="noopener noreferrer"
+                               class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-sp1ng-cyan hover:text-black border border-white/10 hover:border-sp1ng-cyan font-semibold text-xs transition-all">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download DMG
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 glass-panel mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-white">Sp1ng Hub</span> &copy; 2026 — Client-Side Sideloading Tools & Resource Index.
+            </div>
+            <div class="flex items-center gap-6">
+                <span class="text-slate-400">No Backend Uploads</span>
+                <span class="text-slate-400">Verified Official Mirrors</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive Script -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Helper Toast Notification System
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const isSuccess = type === 'success';
+            const borderColor = isSuccess ? 'border-sp1ng-green/50' : 'border-red-500/50';
+            const iconColor = isSuccess ? 'text-sp1ng-green' : 'text-red-400';
+
+            toast.className = `toast-animate pointer-events-auto p-4 rounded-xl glass-panel border ${borderColor} shadow-2xl flex items-start space-x-3`;
+            toast.innerHTML = `
+                <i data-lucide="${isSuccess ? 'check-circle-2' : 'alert-circle'}" class="w-5 h-5 ${iconColor} shrink-0 mt-0.5"></i>
+                <div class="flex-grow">
+                    <h4 class="text-sm font-bold text-white">${title}</h4>
+                    <p class="text-xs text-slate-300 mt-0.5">${message}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons({ targets: [toast] });
+
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
+        // Dropzone & File Input Logic
+        const dropZone = document.getElementById('dropZone');
+        const ipaInput = document.getElementById('ipaInput');
+        const inspectLoader = document.getElementById('inspectLoader');
+        const inspectorResults = document.getElementById('inspectorResults');
+
+        dropZone.addEventListener('click', () => ipaInput.click());
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) processIPAFile(files[0]);
+        });
+
+        ipaInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) processIPAFile(e.target.files[0]);
+        });
+
+        // Core JSZip parsing function
+        async function processIPAFile(file) {
+            if (!file.name.toLowerCase().endsWith('.ipa')) {
+                showToast('Invalid File Format', 'Please upload a valid iOS application package (.ipa)', 'error');
+                return;
+            }
+
+            inspectLoader.classList.remove('hidden');
+            inspectorResults.classList.add('hidden');
+
+            try {
+                const zip = new JSZip();
+                const zipContent = await zip.loadAsync(file);
+                
+                // Search for Payload/*.app/Info.plist inside the archive
+                let infoPlistFile = null;
+                zip.forEach((relativePath, zipEntry) => {
+                    if (relativePath.match(/^Payload\/[^\/]+\.app\/Info\.plist$/i)) {
+                        infoPlistFile = zipEntry;
+                    }
+                });
+
+                let appName = file.name.replace('.ipa', '');
+                let bundleId = 'com.unknown.bundle';
+                let minOS = '14.0';
+                let version = '1.0';
+                let build = '1';
+                let executable = appName;
+
+                if (infoPlistFile) {
+                    const textContent = await infoPlistFile.async('text');
+                    
+                    // Regex extractor for XML plists
+                    const getTagVal = (key) => {
+                        const regex = new RegExp(`<key>${key}</key>\\s*<string>([^<]+)</string>`, 'i');
+                        const match = textContent.match(regex);
+                        return match ? match[1] : null;
+                    };
+
+                    appName = getTagVal('CFBundleDisplayName') || getTagVal('CFBundleName') || appName;
+                    bundleId = getTagVal('CFBundleIdentifier') || bundleId;
+                    minOS = getTagVal('MinimumOSVersion') || minOS;
+                    version = getTagVal('CFBundleShortVersionString') || version;
+                    build = getTagVal('CFBundleVersion') || build;
+                    executable = getTagVal('CFBundleExecutable') || executable;
+                }
+
+                // File size calculation
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+                // Populate UI Data
+                document.getElementById('resAppName').textContent = appName;
+                document.getElementById('resBundleId').textContent = bundleId;
+                document.getElementById('resMinOS').textContent = 'iOS ' + minOS + '+';
+                document.getElementById('resFileSize').textContent = sizeMB;
+                document.getElementById('resVersion').textContent = version;
+                document.getElementById('resBuild').textContent = build;
+                document.getElementById('resExecutable').textContent = executable;
+
+                // Evaluate SideStore Compatibility
+                const minOSNum = parseFloat(minOS);
+                const compatBanner = document.getElementById('compatBanner');
+                const compatTitle = document.getElementById('compatTitle');
+                const compatDesc = document.getElementById('compatDesc');
+                const compatBadge = document.getElementById('compatBadge');
+                const compatIcon = document.getElementById('compatIcon');
+
+                if (isNaN(minOSNum) || minOSNum <= 17.0) {
+                    compatBanner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-sp1ng-green/10 border-sp1ng-green/30 text-sp1ng-green';
+                    compatTitle.textContent = 'Fully Compatible with SideStore';
+                    compatDesc.textContent = `Requires iOS ${minOS}+ which is supported by SideStore wireless signing.`;
+                    compatBadge.className = 'px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-sp1ng-green text-black';
+                    compatBadge.textContent = 'COMPATIBLE';
+                    compatIcon.setAttribute('data-lucide', 'check-circle-2');
+                } else {
+                    compatBanner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-amber-500/10 border-amber-500/30 text-amber-400';
+                    compatTitle.textContent = 'High iOS Target Detected';
+                    compatDesc.textContent = `Requires iOS ${minOS}+. Ensure your device OS version matches or exceeds this.`;
+                    compatBadge.className = 'px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-amber-500 text-black';
+                    compatBadge.textContent = 'CHECK iOS VERSION';
+                    compatIcon.setAttribute('data-lucide', 'alert-triangle');
+                }
+                lucide.createIcons({ targets: [compatBanner] });
+
+                inspectLoader.classList.add('hidden');
+                inspectorResults.classList.remove('hidden');
+
+                showToast('IPA Parsed Successfully', `Extracted metadata for ${appName}.`, 'success');
+            } catch (err) {
+                inspectLoader.classList.add('hidden');
+                showToast('Parsing Failed', 'Could not parse the internal structure of this IPA.', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
